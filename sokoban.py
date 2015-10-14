@@ -172,7 +172,19 @@ def heuristic(state, goalPoints):
 
 
 def authorizedMov(grid, position, direction):
-    return  True
+    x = position[0]+direction[0]
+    y = position[1]+direction[1]
+    if grid[x][y] != '#':
+        if grid[x][y] == '$':
+            xBox = x + direction[0]
+            yBox = y + direction[1]
+            if grid[xBox][yBox] == '$' or grid[xBox][yBox] == '#':
+                return None
+            newGrid = copy.deepcopy(grid)
+            newGrid[xBox][yBox] = '$'
+            newGrid[x][y] = ' '
+        return State(newGrid, (x,y), goalPoints)
+    return  None
 
 class Sokoban(Problem):
 
