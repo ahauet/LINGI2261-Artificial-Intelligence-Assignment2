@@ -80,27 +80,27 @@ def deadState(previousGrid, grid, smileyPos, direction):
 
         #Check if there is a wall up and left
         #Check if there is a wall up and right
-        upPos = applyMove(pushedBoxPos, direction['U'])
+        upPos = applyMove(pushedBoxPos, directions['U'])
         if inBounds(grid, upPos):
             if getGridContentAtPos(grid, upPos) == '#':
-                leftPos = applyMove(pushedBoxPos, direction['L'])
+                leftPos = applyMove(pushedBoxPos, directions['L'])
                 if inBounds(grid, leftPos):
                     if getGridContentAtPos(grid, leftPos) == '#':
                         return True
-                rightPos = applyMove(pushedBoxPos, direction['R'])
+                rightPos = applyMove(pushedBoxPos, directions['R'])
                 if inBounds(grid, rightPos):
                     if getGridContentAtPos(grid, rightPos) == '#':
                         return True
         # Check if there is a wall down and left
         # Check if there is a wall down and right
-        downPos = applyMove(pushedBoxPos, direction['D'])
+        downPos = applyMove(pushedBoxPos, directions['D'])
         if inBounds(grid, downPos):
             if getGridContentAtPos(grid, downPos) == '#':
-                leftPos = applyMove(pushedBoxPos, direction['L'])
+                leftPos = applyMove(pushedBoxPos, directions['L'])
                 if inBounds(grid, leftPos):
                     if getGridContentAtPos(grid, leftPos) == '#':
                         return True
-                rightPos = applyMove(pushedBoxPos, direction['R'])
+                rightPos = applyMove(pushedBoxPos, directions['R'])
                 if inBounds(grid, rightPos):
                     if getGridContentAtPos(grid, rightPos) == '#':
                         return True
@@ -154,18 +154,28 @@ def heuristic(node):
     return sum
 
 
-def authorizedMov(grid, position, direction):
+def isGoalPoint(point, goalPoints):
+    for p in goalPoints:
+        if p[0] == point[0] and p[1] == point[1]:
+            return True
+    return False
+
+
+def authorizedMov(grid, position, direction, goalPoints):
     x = position[0]+direction[0]
     y = position[1]+direction[1]
     if grid[x][y] != '#':
+        newGrid = copy.deepcopy(grid)
         if grid[x][y] == '$':
+            if isGoalPoint([x, y], goalPoints):
+                return None
             xBox = x + direction[0]
             yBox = y + direction[1]
             if grid[xBox][yBox] == '$' or grid[xBox][yBox] == '#':
                 return None
-            newGrid = copy.deepcopy(grid)
             newGrid[xBox][yBox] = '$'
-            newGrid[x][y] = ' '
+        newGrid[x][y] = '@'
+        newGrid[position[0]][position[1]] = ' '
         return State(newGrid, (x,y), goalPoints)
     return  None
 
@@ -182,22 +192,25 @@ class Sokoban(Problem):
         # dicoDirections = heuristic(state, goalPoints) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         # dicoDirections.sort(orderHeuristic)
         for direction in directions.values():
-            newState = authorizedMov(state.grid, state.smileyPosition, direction) #authorizedMov return a newState if the mvoement is valid, else return NONE
+            newState = authorizedMov(state.grid, state.smileyPosition, direction, state.goalPoints) #authorizedMov return a newState if the mvoement is valid, else return NONE
             if newState: #movement authorized
                 if deadState(state.grid, newState.grid, newState.smileyPosition, direction):#dead state
                     pass
                 else: #ok
+                    print(newState)
                     yield (direction, newState)
             else: #movement invalid : obstacle, ...
                 pass
 
 
 class State:
-
+    hashValue = 0
     def __init__(self, grid, pos, goalPoints):
         self.grid = grid
         self.smileyPosition = pos
         self.goalPoints = goalPoints
+        self.hashValue = State.hashValue
+        State.hashValue += 1
 
     def __eq__(self, other):
         for i in range(0, len(self.grid)):
@@ -205,6 +218,23 @@ class State:
                 if self.grid[i][j] != other.grid[i][j]:
                     return False
         return True
+
+    def __hash__(self):
+        # hashvalue = 0
+        # for i in range(0, len(self.grid)):
+        #     for j in range(0, len(self.grid[0])):
+        #         x = grid[i][j]
+        #         hashvalue +=
+        return self.hashValue
+
+
+    def __str__(self):
+        output = ""
+        for line in self.grid:
+            for letter in line:
+                output += letter
+            output += '\n'
+        return output
 
 
 
@@ -292,7 +322,7 @@ def abs(n):
 start_time = time.time()
 
 if len(sys.argv) < 2:
-    print("usage: numberlink.py inputFile")
+    print("usage: sokoban.py instance")
     exit(2)
 grid = constructGrid(sys.argv[1])
 goalPoints = getGoalPoint(sys.argv[1])
