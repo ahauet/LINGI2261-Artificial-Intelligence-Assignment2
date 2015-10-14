@@ -35,12 +35,10 @@ def heuristic(state, goalPoints):
     boxPoints = getBoxesPoint(state.grid)
     smileyPos = getSmileyPos(state.grid)
     for position in directions :
-        print(position)
         coord = directions[position]
         sum = 0
         shorterSmi = 9223372036854775807
         newPos = [smileyPos[0] + coord[0],smileyPos[1] + coord[1]]
-        print(newPos)
         if inBounds(state.grid, newPos) and grid[newPos[0]][newPos[1]] != '#':
             for box in boxPoints:
                 manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
@@ -190,8 +188,6 @@ print(smileyPos)
 
 problem = Sokoban(grid, goalPoints)
 print(problem.goalState == problem.goalState)
-truc = heuristic(State(grid, getSmileyPos(grid)), goalPoints)
-print(truc)
 exit(0)
 
 # print(problem.initial.letter)
