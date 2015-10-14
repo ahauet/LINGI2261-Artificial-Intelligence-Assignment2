@@ -151,10 +151,7 @@ def heuristic(node):
                     shorterBox = manhattan2
             sum += manhattan2
         sum += shorterSmi
-        result[position] = sum
-    else:
-        result[position] = None
-    return result
+    return sum
 
 
 def authorizedMov(grid, position, direction):
@@ -170,9 +167,9 @@ class Sokoban(Problem):
         super().__init__(self.initState, self.goalState)
 
     def successor(self, state):
-        dicoDirections = heuristic(state, goalPoints) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
-        dicoDirections.sort(orderHeuristic)
-        for direction in dicoDirections:
+        # dicoDirections = heuristic(state, goalPoints) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
+        # dicoDirections.sort(orderHeuristic)
+        for direction in directions.values():
             newState = authorizedMov(state.grid, state.smileyPosition, direction) #authorizedMov return a newState if the mvoement is valid, else return NONE
             if newState: #movement authorized
                 if deadState(state.grid, newState.grid, newState.smileyPosition, direction):#dead state
