@@ -105,12 +105,12 @@ def deadState(previousGrid, grid, smileyPos, direction):
                     if getGridContentAtPos(grid, rightPos) == '#':
                         return True
 
-        # possible dead state 2)  ############   ############
-        #                         #    $$    #   #          #
-        #                         #          #   #  #$      #
-        #                         #          #   #  #$      #
-        #                         #          #   #          #
-        #                         ############   ############
+        # possible dead state 2)  ############   ############  ############   ############
+        #                         #    $$    #   #          #  #          #   #          #
+        #                         #          #   #  #$      #  #    $$    #   #    $#    #
+        #                         #          #   #  #$      #  #    $$    #   #    $$    #
+        #                         #          #   #          #  #          #   #          #
+        #                         ############   ############  ############   ############
 
         #Check if there is a 2*2 squarre with no blank
         subSquarre1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
@@ -130,44 +130,30 @@ def deadState(previousGrid, grid, smileyPos, direction):
             if not hasBlank:
                 return True
 
-        # possible dead state 3)  ############   ############
-        #                         #          #   #          #
-        #                         #    $$    #   #    $#    #
-        #                         #    $$    #   #    $$    #
-        #                         #          #   #          #
-        #                         ############   ############
-        #
-        #
-
-
-
     return False #we didn't pushed a box or there is no dead states
 
 
-def heuristic(state, goalPoints):
+def heuristic(node):
     result = {}
-    boxPoints = getBoxesPoint(state.grid)
-    smileyPos = getSmileyPos(state.grid)
-    for position in directions :
-        coord = directions[position]
-        sum = 0
-        shorterSmi = 9223372036854775807
-        newPos = [smileyPos[0] + coord[0],smileyPos[1] + coord[1]]
-        if inBounds(state.grid, newPos) and grid[newPos[0]][newPos[1]] != '#':
-            for box in boxPoints:
-                manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
-                if manhattan1 < shorterSmi:
-                    shorterSmi = manhattan1
-                shorterBox = 9223372036854775807
-                for goal in goalPoints:
-                    manhattan2 = abs(goal[0]-box[0]) + abs(goal[1]-box[1])
-                    if manhattan2 < shorterBox :
-                        shorterBox = manhattan2
-                sum += manhattan2
-            sum += shorterSmi
-            result[position] = sum
-        else:
-            result[position] = None
+    boxPoints = getBoxesPoint(node.state.grid)
+    smileyPos = getSmileyPos(node.state.grid)
+    sum = 0
+    shorterSmi = 9223372036854775807
+    if grid[node.state.smileyPosition[0]][node.state.smileyPosition[1]] != '#':
+        for box in boxPoints:
+            manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
+            if manhattan1 < shorterSmi:
+                shorterSmi = manhattan1
+            shorterBox = 9223372036854775807
+            for goal in node.state.goalPoints:
+                manhattan2 = abs(goal[0]-box[0]) + abs(goal[1]-box[1])
+                if manhattan2 < shorterBox :
+                    shorterBox = manhattan2
+            sum += manhattan2
+        sum += shorterSmi
+        result[position] = sum
+    else:
+        result[position] = None
     return result
 
 
@@ -190,8 +176,8 @@ class Sokoban(Problem):
 
     def __init__(self, grid, goalPoints):
         self.goalPoints = goalPoints
-        self.initState = State(grid, getSmileyPos(grid))
-        self.goalState = State(constructGoalGrid(grid, goalPoints), None)
+        self.initState = State(grid, getSmileyPos(grid), goalPoints)
+        self.goalState = State(constructGoalGrid(grid, goalPoints), None, None)
 
         super().__init__(self.initState, self.goalState)
 
@@ -211,9 +197,10 @@ class Sokoban(Problem):
 
 class State:
 
-    def __init__(self, grid, pos):
+    def __init__(self, grid, pos, goalPoints):
         self.grid = grid
         self.smileyPosition = pos
+        self.goalPoints = goalPoints
 
     def __eq__(self, other):
         for i in range(0, len(self.grid)):
@@ -307,25 +294,24 @@ def abs(n):
 
 start_time = time.time()
 
-if len(sys.argv) < 2: print("usage: numberlink.py inputFile"); exit(2)
+if len(sys.argv) < 2:
+    print("usage: numberlink.py inputFile")
+    exit(2)
 grid = constructGrid(sys.argv[1])
 goalPoints = getGoalPoint(sys.argv[1])
 smileyPos = getSmileyPos(grid)
-print(grid)
-print(goalPoints)
-print(smileyPos)
 
 problem = Sokoban(grid, goalPoints)
-print(problem.goalState == problem.goalState)
-exit(0)
 
-# print(problem.initial.letter)
-# print(problem.initial.position)
-# for pair in problem.successor(problem.initial):
-#    print(pair[0], pair[1].grid)
-# exit(0)
+# example of bfs search
+node = astar_graph_search(problem, heuristic)
+# example of print
+path = node.path()
+path.reverse()
+for n in path:
+    print(n.state)  # assuming that the __str__ function of states output the correct format
 
 
 print("--- %s seconds ---" % (time.time() - start_time))
 print("--- %s nodes explored ---" % problem.nbrExploredNodes)
-#print("--- %s steps from root to solution ---" % (len(path) -1) )
+print("--- %s steps from root to solution ---" % (len(path) -1) )
