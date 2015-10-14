@@ -1,10 +1,16 @@
-'''NAMES OF THE AUTHOR(S): Alexandre Hauet & Tanguy Vaessen'''
+"""NAMES OF THE AUTHOR(S): Alexandre Hauet & Tanguy Vaessen"""
 import time
 from search import *
 import copy
 
 
 def constructGoalGrid(grid, goalPoints):
+    """
+    Add the goal point to a copy of the grid
+    :param grid: matrix
+    :param goalPoints: list
+    :return: matrix
+    """
     goalGrid = copy.deepcopy(grid)
     for point in goalPoints:
         goalGrid[point[0]][point[1]] = '$'
@@ -13,21 +19,129 @@ def constructGoalGrid(grid, goalPoints):
 directions = {"L" : [0, -1], "R":[0, 1], "U":[1, 0], "D":[-1, 0]}  # Left, Right, Up, Down
 
 def orderHeuristic(x,y):
-    if (x[1] < y[1]):
+    """
+    Compare two integers
+    :param x:
+    :param y:
+    :return: 0 if equals, -1 if x < y, 1 if x >= y
+    """
+    if x[1] < y[1]:
         return -1
-    elif(x[1] == y[1]):
+    elif x[1] == y[1]:
         return 0
     else: return 1
 
 
-def deadState(previousGrid, grid, previousPosition, direction):
+def applyMove(point, direction):
+    """
+    apply the move direction to point
+    :param point: (x,y)
+    :param direction: (a,b)
+    :return: (x+a, y+b)
+    """
+    return [
+        point[0] + direction[0],
+        point[1] + direction[1]
+    ]
+
+
+def getGridContentAtPos(grid, pos):
+    """
+    Look in the grid for the content of pos
+    Warning, pos must be in the bounds of the grid
+    :param pos: (x,y)
+    :return: grid[x][y]
+    """
+    return grid[pos[0]][pos[1]]
+
+def deadState(previousGrid, grid, smileyPos, direction):
     """Check if the smiley had push a box
     If yes, check if there is a dead state with this box
-    Else, return false"""
-    if previousGrid[previousPosition[0]][previousPosition[1]] != '$': #we pushed a box
-        pass
-    else:
-        return False
+    Else, return false
+
+    :param previousGrid: matrix representing the grid before smiley moved
+    :param grid: matrix representing the grid after the smiley moved
+    :param smileyPos: (x,y) coordinates of the smiley after move
+    :param direction: (a,b) direction in which the smiley moved
+    :return: True if there is a dead state and False otherwise
+    """
+    if previousGrid[smileyPos[0]][smileyPos[1]] == '$': #we pushed a box
+        pushedBoxPos = applyMove(smileyPos, direction)
+
+        # we need to check if there is a dead state with the box we pushed
+        #
+        # possible dead state 1)  ############   ############
+        #                         #$         #   #          #
+        #                         #          #   #    #     #
+        #                         #          #   #   #$     #
+        #                         #          #   #          #
+        #                         ############   ############
+        #
+
+        #Check if there is a wall up and left
+        #Check if there is a wall up and right
+        upPos = applyMove(pushedBoxPos, direction['U'])
+        if inBounds(grid, upPos):
+            if getGridContentAtPos(grid, upPos) == '#':
+                leftPos = applyMove(pushedBoxPos, direction['L'])
+                if inBounds(grid, leftPos):
+                    if getGridContentAtPos(grid, leftPos) == '#':
+                        return True
+                rightPos = applyMove(pushedBoxPos, direction['R'])
+                if inBounds(grid, rightPos):
+                    if getGridContentAtPos(grid, rightPos) == '#':
+                        return True
+        # Check if there is a wall down and left
+        # Check if there is a wall down and right
+        downPos = applyMove(pushedBoxPos, direction['D'])
+        if inBounds(grid, downPos):
+            if getGridContentAtPos(grid, downPos) == '#':
+                leftPos = applyMove(pushedBoxPos, direction['L'])
+                if inBounds(grid, leftPos):
+                    if getGridContentAtPos(grid, leftPos) == '#':
+                        return True
+                rightPos = applyMove(pushedBoxPos, direction['R'])
+                if inBounds(grid, rightPos):
+                    if getGridContentAtPos(grid, rightPos) == '#':
+                        return True
+
+        # possible dead state 2)  ############   ############
+        #                         #    $$    #   #          #
+        #                         #          #   #  #$      #
+        #                         #          #   #  #$      #
+        #                         #          #   #          #
+        #                         ############   ############
+
+        #Check if there is a 2*2 squarre with no blank
+        subSquarre1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
+        subSquarre2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
+        subSquarre3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
+        subSquarre4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
+        subSquarres = [subSquarre1, subSquarre2, subSquarre3, subSquarre4]
+
+        for subSquarre in subSquarres:
+            hasBlank = False
+            for direction in subSquarre:
+                pos = applyMove(pushedBoxPos, direction)
+                if inBounds(grid, pos):
+                    if getGridContentAtPos(grid, pos) == ' ':
+                        hasBlank = True
+                        break #the square hasn't 4 full blocks
+            if not hasBlank:
+                return True
+
+        # possible dead state 3)  ############   ############
+        #                         #          #   #          #
+        #                         #    $$    #   #    $#    #
+        #                         #    $$    #   #    $$    #
+        #                         #          #   #          #
+        #                         ############   ############
+        #
+        #
+
+
+
+    return False #we didn't pushed a box or there is no dead states
 
 
 class Sokoban(Problem):
@@ -40,12 +154,12 @@ class Sokoban(Problem):
         super().__init__(self.initState, self.goalState)
 
     def successor(self, state):
-        dicoDirections = heuristic(state) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
+        dicoDirections = heuristic(state) #heuristic will return a dictionary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         dicoDirections.sort(orderHeuristic)
         for direction in dicoDirections:
             newState = authorizedMov(state.grid, state.smileyPosition, direction): #authorizedMov return a newState if the mvoement is valid, else return NONE
             if newState: #movement authorized
-                if deadState(state.grid, newState.grid, state.smileyPosition, direction):#dead state
+                if deadState(state.grid, newState.grid, newState.smileyPosition, direction):#dead state
                     pass
                 else: #ok
                     yield (direction, newState)
@@ -94,6 +208,9 @@ def constructGrid(problemFileName):
 
 
 def getGoalPoint(fileName):
+    """Open an interpret a goal file
+    Return a list of position (x,y)
+    Each point is a goal point"""
     result=[]
     x=0
     y=0
