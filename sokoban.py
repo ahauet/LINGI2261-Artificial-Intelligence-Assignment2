@@ -31,6 +31,7 @@ def deadState(previousGrid, grid, previousPosition, direction):
 
 
 def heuristic(state):
+    print(state.grid)
     return True
 
 
@@ -131,6 +132,19 @@ def getBoxesPoint(grid):
         y=0
     return result
 
+def getSmileyPos(grid):
+    result=[]
+    x=0
+    y=0
+    while x < len(grid):
+        while y < len(grid[x]):
+            if grid[x][y] == '@':
+                return (x,y)
+            y+=1
+        x+=1
+        y=0
+    return None
+
 
 
 
@@ -144,9 +158,10 @@ start_time = time.time()
 if len(sys.argv) < 2: print("usage: numberlink.py inputFile"); exit(2)
 grid = constructGrid(sys.argv[1])
 goalPoints = getGoalPoint(sys.argv[1])
+smileyPos = getSmileyPos(grid)
 print(grid)
 print(goalPoints)
-print(getBoxesPoint(grid))
+print(smileyPos)
 
 problem = Sokoban(grid, goalPoints)
 print(problem.goalState == problem.goalState)
