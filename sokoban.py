@@ -10,7 +10,7 @@ def constructGoalGrid(grid, goalPoints):
         goalGrid[point[0]][point[1]] = '$'
     return goalGrid
 
-directions = {"L" : [0, -1], "R":[0, 1], "U":[1, 0], "D":[-1, 0]}  # Left, Right, Up, Down
+directions = {"L" : [0, -1], "R":[0, 1], "U":[-1, 0], "D":[1, 0]}  # Left, Right, Up, Down
 
 def orderHeuristic(x,y):
     if (x[1] < y[1]):
@@ -30,9 +30,33 @@ def deadState(previousGrid, grid, previousPosition, direction):
         return False
 
 
-def heuristic(state):
-    print(state.grid)
-    return True
+def heuristic(state, goalPoints):
+    result = {}
+    boxPoints = getBoxesPoint(state.grid)
+    smileyPos = getSmileyPos(state.grid)
+    for position in directions :
+        print(position)
+        coord = directions[position]
+        sum = 0
+        shorterSmi = 9223372036854775807
+        newPos = [smileyPos[0] + coord[0],smileyPos[1] + coord[1]]
+        print(newPos)
+        if inBounds(state.grid, newPos) and grid[newPos[0]][newPos[1]] != '#':
+            for box in boxPoints:
+                manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
+                if manhattan1 < shorterSmi:
+                    shorterSmi = manhattan1
+                shorterBox = 9223372036854775807
+                for goal in goalPoints:
+                    manhattan2 = abs(goal[0]-box[0]) + abs(goal[1]-box[1])
+                    if manhattan2 < shorterBox :
+                        shorterBox = manhattan2
+                sum += manhattan2
+            sum += shorterSmi
+            result[position] = sum
+        else:
+            result[position] = None
+    return result
 
 
 def authorizedMov(grid, position, direction):
@@ -42,13 +66,13 @@ class Sokoban(Problem):
 
     def __init__(self, grid, goalPoints):
         self.goalPoints = goalPoints
-        self.initState = State(grid)
-        self.goalState = State(constructGoalGrid(grid, goalPoints))
+        self.initState = State(grid, getSmileyPos(grid))
+        self.goalState = State(constructGoalGrid(grid, goalPoints), None)
 
         super().__init__(self.initState, self.goalState)
 
     def successor(self, state):
-        dicoDirections = heuristic(state) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
+        dicoDirections = heuristic(state, goalPoints) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         dicoDirections.sort(orderHeuristic)
         for direction in dicoDirections:
             newState = authorizedMov(state.grid, state.smileyPosition, direction) #authorizedMov return a newState if the mvoement is valid, else return NONE
@@ -145,7 +169,8 @@ def getSmileyPos(grid):
         y=0
     return None
 
-
+def abs(n):
+    return (n, -n)[n < 0]
 
 
 
@@ -165,7 +190,8 @@ print(smileyPos)
 
 problem = Sokoban(grid, goalPoints)
 print(problem.goalState == problem.goalState)
-
+truc = heuristic(State(grid, getSmileyPos(grid)), goalPoints)
+print(truc)
 exit(0)
 
 # print(problem.initial.letter)
