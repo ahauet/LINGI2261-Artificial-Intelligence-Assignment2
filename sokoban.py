@@ -30,6 +30,13 @@ def deadState(previousGrid, grid, previousPosition, direction):
         return False
 
 
+def heuristic(state):
+    return True
+
+
+def authorizedMov(grid, position, direction):
+    return  True
+
 class Sokoban(Problem):
 
     def __init__(self, grid, goalPoints):
@@ -43,7 +50,7 @@ class Sokoban(Problem):
         dicoDirections = heuristic(state) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         dicoDirections.sort(orderHeuristic)
         for direction in dicoDirections:
-            newState = authorizedMov(state.grid, state.smileyPosition, direction): #authorizedMov return a newState if the mvoement is valid, else return NONE
+            newState = authorizedMov(state.grid, state.smileyPosition, direction) #authorizedMov return a newState if the mvoement is valid, else return NONE
             if newState: #movement authorized
                 if deadState(state.grid, newState.grid, state.smileyPosition, direction):#dead state
                     pass
@@ -111,6 +118,19 @@ def getGoalPoint(fileName):
         exit(1)
     return result
 
+def getBoxesPoint(grid):
+    result=[]
+    x=0
+    y=0
+    while x < len(grid):
+        while y < len(grid[x]):
+            if grid[x][y] == '$':
+                result.append((x,y))
+            y+=1
+        x+=1
+        y=0
+    return result
+
 
 
 
@@ -126,6 +146,7 @@ grid = constructGrid(sys.argv[1])
 goalPoints = getGoalPoint(sys.argv[1])
 print(grid)
 print(goalPoints)
+print(getBoxesPoint(grid))
 
 problem = Sokoban(grid, goalPoints)
 print(problem.goalState == problem.goalState)
@@ -141,4 +162,4 @@ exit(0)
 
 print("--- %s seconds ---" % (time.time() - start_time))
 print("--- %s nodes explored ---" % problem.nbrExploredNodes)
-print("--- %s steps from root to solution ---" % (len(path) -1) )
+#print("--- %s steps from root to solution ---" % (len(path) -1) )
