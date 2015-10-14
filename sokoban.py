@@ -24,7 +24,10 @@ def deadState(previousGrid, grid, previousPosition, direction):
     """Check if the smiley had push a box
     If yes, check if there is a dead state with this box
     Else, return false"""
-    
+    if previousGrid[previousPosition[0]][previousPosition[1]] != '$': #we pushed a box
+        pass
+    else:
+        return False
 
 
 class Sokoban(Problem):
@@ -37,7 +40,7 @@ class Sokoban(Problem):
         super().__init__(self.initState, self.goalState)
 
     def successor(self, state):
-        dicoDirections = heuristic(state)
+        dicoDirections = heuristic(state) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         dicoDirections.sort(orderHeuristic)
         for direction in dicoDirections:
             newState = authorizedMov(state.grid, state.smileyPosition, direction): #authorizedMov return a newState if the mvoement is valid, else return NONE
