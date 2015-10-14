@@ -10,6 +10,22 @@ def constructGoalGrid(grid, goalPoints):
         goalGrid[point[0]][point[1]] = '$'
     return goalGrid
 
+directions = {"L" : [0, -1], "R":[0, 1], "U":[1, 0], "D":[-1, 0]}  # Left, Right, Up, Down
+
+def orderHeuristic(x,y):
+    if (x[1] < y[1]):
+        return -1
+    elif(x[1] == y[1]):
+        return 0
+    else: return 1
+
+
+def deadState(previousGrid, grid, previousPosition, direction):
+    """Check if the smiley had push a box
+    If yes, check if there is a dead state with this box
+    Else, return false"""
+    
+
 
 class Sokoban(Problem):
 
@@ -20,12 +36,25 @@ class Sokoban(Problem):
 
         super().__init__(self.initState, self.goalState)
 
+    def successor(self, state):
+        dicoDirections = heuristic(state)
+        dicoDirections.sort(orderHeuristic)
+        for direction in dicoDirections:
+            newState = authorizedMov(state.grid, state.smileyPosition, direction): #authorizedMov return a newState if the mvoement is valid, else return NONE
+            if newState: #movement authorized
+                if deadState(state.grid, newState.grid, state.smileyPosition, direction):#dead state
+                    pass
+                else: #ok
+                    yield (direction, newState)
+            else: #movement invalid : obstacle, ...
+                pass
 
 
 class State:
 
-    def __init__(self, grid):
+    def __init__(self, grid, pos):
         self.grid = grid
+        self.smileyPosition = pos
 
     def __eq__(self, other):
         for i in range(0, len(self.grid)):
@@ -33,6 +62,7 @@ class State:
                 if self.grid[i][j] != other.grid[i][j]:
                     return False
         return True
+
 
 
 def inBounds(grid, pos):
