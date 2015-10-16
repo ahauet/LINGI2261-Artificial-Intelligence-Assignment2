@@ -45,112 +45,8 @@ def applyMove(point, direction):
     ]
 
 
-def getGridContentAtPos(grid, pos):
-    """
-    Look in the grid for the content of pos
-    Warning, pos must be in the bounds of the grid
-    :param pos: (x,y)
-    :return: grid[x][y]
-    """
-    return grid[pos[0]][pos[1]]
-
-def deadState(previousGrid, grid, smileyPos, direction):
-    """Check if the smiley had push a box
-    If yes, check if there is a dead state with this box
-    Else, return false
-
-    :param previousGrid: matrix representing the grid before smiley moved
-    :param grid: matrix representing the grid after the smiley moved
-    :param smileyPos: (x,y) coordinates of the smiley after move
-    :param direction: (a,b) direction in which the smiley moved
-    :return: True if there is a dead state and False otherwise
-    """
-    if previousGrid[smileyPos[0]][smileyPos[1]] == '$': #we pushed a box
-        pushedBoxPos = applyMove(smileyPos, direction)
-
-        # we need to check if there is a dead state with the box we pushed
-        #
-        # possible dead state 1)  ############   ############
-        #                         #$         #   #          #
-        #                         #          #   #    #     #
-        #                         #          #   #   #$     #
-        #                         #          #   #          #
-        #                         ############   ############
-        #
-
-        #Check if there is a wall up and left
-        #Check if there is a wall up and right
-        upPos = applyMove(pushedBoxPos, directions['U'])
-        if inBounds(grid, upPos):
-            if getGridContentAtPos(grid, upPos) == '#':
-                leftPos = applyMove(pushedBoxPos, directions['L'])
-                if inBounds(grid, leftPos):
-                    if getGridContentAtPos(grid, leftPos) == '#':
-                        return True
-                rightPos = applyMove(pushedBoxPos, directions['R'])
-                if inBounds(grid, rightPos):
-                    if getGridContentAtPos(grid, rightPos) == '#':
-                        return True
-        # Check if there is a wall down and left
-        # Check if there is a wall down and right
-        downPos = applyMove(pushedBoxPos, directions['D'])
-        if inBounds(grid, downPos):
-            if getGridContentAtPos(grid, downPos) == '#':
-                leftPos = applyMove(pushedBoxPos, directions['L'])
-                if inBounds(grid, leftPos):
-                    if getGridContentAtPos(grid, leftPos) == '#':
-                        return True
-                rightPos = applyMove(pushedBoxPos, directions['R'])
-                if inBounds(grid, rightPos):
-                    if getGridContentAtPos(grid, rightPos) == '#':
-                        return True
-
-        # possible dead state 2)  ############   ############  ############   ############
-        #                         #    $$    #   #          #  #          #   #          #
-        #                         #          #   #  #$      #  #    $$    #   #    $#    #
-        #                         #          #   #  #$      #  #    $$    #   #    $$    #
-        #                         #          #   #          #  #          #   #          #
-        #                         ############   ############  ############   ############
-
-        #Check if there is a 2*2 squarre with no blank
-        subSquarre1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
-        subSquarre2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
-        subSquarre3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
-        subSquarre4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
-        subSquarres = [subSquarre1, subSquarre2, subSquarre3, subSquarre4]
-
-        for subSquarre in subSquarres:
-            hasBlank = False
-            for direction in subSquarre:
-                pos = applyMove(pushedBoxPos, direction)
-                if inBounds(grid, pos):
-                    if getGridContentAtPos(grid, pos) == ' ':
-                        hasBlank = True
-                        break #the square hasn't 4 full blocks
-            if not hasBlank:
-                return True
-
-    return False #we didn't pushed a box or there is no dead states
 
 
-def heuristic(node):
-    boxPoints = getBoxesPoint(node.state.grid)
-    smileyPos = getSmileyPos(node.state.grid)
-    sum = 0
-    shorterSmi = 9223372036854775807
-    if grid[node.state.smileyPosition[0]][node.state.smileyPosition[1]] != '#':
-        for box in boxPoints:
-            manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
-            if manhattan1 < shorterSmi:
-                shorterSmi = manhattan1
-            shorterBox = 9223372036854775807
-            for goal in node.state.goalPoints:
-                manhattan2 = abs(goal[0]-box[0]) + abs(goal[1]-box[1])
-                if manhattan2 < shorterBox :
-                    shorterBox = manhattan2
-            sum += manhattan2
-        sum += shorterSmi
-    return sum
 
 
 def isGoalPoint(point, goalPoints):
@@ -160,30 +56,14 @@ def isGoalPoint(point, goalPoints):
     return False
 
 
-def authorizedMov(grid, position, direction, goalPoints):
-    x = position[0]+direction[0]
-    y = position[1]+direction[1]
-    if grid[x][y] != '#':
-        newGrid = copy.deepcopy(grid)
-        if grid[x][y] == '$':
-            if isGoalPoint([x, y], goalPoints):
-                return None
-            xBox = x + direction[0]
-            yBox = y + direction[1]
-            if grid[xBox][yBox] == '$' or grid[xBox][yBox] == '#':
-                return None
-            newGrid[xBox][yBox] = '$'
-        newGrid[x][y] = '@'
-        newGrid[position[0]][position[1]] = ' '
-        return State(newGrid, (x,y), goalPoints)
-    return  None
-
 class Sokoban(Problem):
 
-    def __init__(self, grid, goalPoints):
+    def __init__(self, grid, smiley, boxesPostions, goalPoints):
+        self.nbrExploredNodes = 0
+        self.grid = grid
         self.goalPoints = goalPoints
-        self.initState = State(grid, getSmileyPos(grid), goalPoints)
-        self.goalState = State(constructGoalGrid(grid, goalPoints), None, None)
+        self.initState = State(smiley, boxesPostions)
+        self.goalState = State(None, goalPoints)
 
         super().__init__(self.initState, self.goalState)
 
@@ -191,29 +71,154 @@ class Sokoban(Problem):
         # dicoDirections = heuristic(state, goalPoints) #heuristic will return a dictionnary that associate each direction to a value. ex: {'L' : 1, 'R': 8, 'U': 9, 'D': 4}
         # dicoDirections.sort(orderHeuristic)
         for direction in directions.values():
-            newState = authorizedMov(state.grid, state.smileyPosition, direction, state.goalPoints) #authorizedMov return a newState if the mvoement is valid, else return NONE
+            newState = self.authorizedMov(state, direction, self.goalPoints) #authorizedMov return a newState if the mvoement is valid, else return NONE
             if newState: #movement authorized
-                if deadState(state.grid, newState.grid, newState.smileyPosition, direction):#dead state
-                    pass
-                else: #ok
+                if not self.deadState(state, newState, direction):#ok
+                    self.nbrExploredNodes += 1
                     print(newState)
                     yield (direction, newState)
-            else: #movement invalid : obstacle, ...
-                pass
+
+    def authorizedMov(self, state , direction, goalPoints):
+        x = state.smileyPosition[0]+direction[0]
+        y = state.smileyPosition[1]+direction[1]
+        if self.getGridContentAtPos(state, (x,y)) != '#':
+            newBoxesPoint = copy.deepcopy(state.boxesPositions)
+            if self.getGridContentAtPos(state, (x,y)) == '$':
+                if isGoalPoint([x, y], goalPoints):
+                    return None
+                xBox = x + direction[0]
+                yBox = y + direction[1]
+                if self.getGridContentAtPos(state, (xBox,yBox)) == '$' or self.getGridContentAtPos(state, (xBox,yBox)) == '#':
+                    return None
+                newBoxesPoint = updateBoxesPoint(state.boxesPositions, (x,y), (xBox,yBox))
+            return State((x,y), newBoxesPoint)
+        return  None
+
+    def getGridContentAtPos(self, state, position):
+        """
+        Look in the grid for the content of pos
+        Warning, pos must be in the bounds of the grid
+        :param pos: (x,y)
+        :return: grid[x][y]
+        """
+        if self.grid[position[0]][position[1]] == '#':
+            return '#'
+        if position[0] == state.smileyPosition[0] and position[1] == state.smileyPosition[1]:
+            return '@'
+        for boxe in state.boxesPositions:
+            if position[0] == boxe[0] and position[1] == boxe[1]:
+                return '$'
+        return ' '
+
+    def deadState(self, previousState, state, direction):
+        """Check if the smiley had push a box
+        If yes, check if there is a dead state with this box
+        Else, return false
+
+        :param previousGrid: matrix representing the grid before smiley moved
+        :param grid: matrix representing the grid after the smiley moved
+        :param smileyPos: (x,y) coordinates of the smiley after move
+        :param direction: (a,b) direction in which the smiley moved
+        :return: True if there is a dead state and False otherwise
+        """
+        if state.smileyPosition in previousState.boxesPositions : #we pushed a box
+            pushedBoxPos = applyMove(state.smileyPosition, direction)
+
+            # we need to check if there is a dead state with the box we pushed
+            #
+            # possible dead state 1)  ############   ############
+            #                         #$         #   #          #
+            #                         #          #   #    #     #
+            #                         #          #   #   #$     #
+            #                         #          #   #          #
+            #                         ############   ############
+            #
+
+            #Check if there is a wall up and left
+            #Check if there is a wall up and right
+            upPos = applyMove(pushedBoxPos, directions['U'])
+            if inBounds(self.grid, upPos):
+                if self.getGridContentAtPos(state, upPos) == '#':
+                    leftPos = applyMove(pushedBoxPos, directions['L'])
+                    if inBounds(self.grid, leftPos):
+                        if self.getGridContentAtPos(state, leftPos) == '#':
+                            return True
+                    rightPos = applyMove(pushedBoxPos, directions['R'])
+                    if inBounds(self.grid, rightPos):
+                        if self.getGridContentAtPos(state, rightPos) == '#':
+                            return True
+            # Check if there is a wall down and left
+            # Check if there is a wall down and right
+            downPos = applyMove(pushedBoxPos, directions['D'])
+            if inBounds(self.grid, downPos):
+                if self.getGridContentAtPos(state, downPos) == '#':
+                    leftPos = applyMove(pushedBoxPos, directions['L'])
+                    if inBounds(self.grid, leftPos):
+                        if self.getGridContentAtPos(state, leftPos) == '#':
+                            return True
+                    rightPos = applyMove(pushedBoxPos, directions['R'])
+                    if inBounds(self.grid, rightPos):
+                        if self.getGridContentAtPos(state, rightPos) == '#':
+                            return True
+
+            # possible dead state 2)  ############   ############  ############   ############
+            #                         #    $$    #   #          #  #          #   #          #
+            #                         #          #   #  #$      #  #    $$    #   #    $#    #
+            #                         #          #   #  #$      #  #    $$    #   #    $$    #
+            #                         #          #   #          #  #          #   #          #
+            #                         ############   ############  ############   ############
+
+            #Check if there is a 2*2 square with no blank
+            subSquare1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
+            subSquare2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
+            subSquare3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
+            subSquare4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
+            subSquares = [subSquare1, subSquare2, subSquare3, subSquare4]
+
+            for subSquare in subSquares:
+                hasBlank = False
+                for direction in subSquare:
+                    pos = applyMove(pushedBoxPos, direction)
+                    if inBounds(self.grid, pos):
+                        if self.getGridContentAtPos(state, pos) == ' ':
+                            hasBlank = True
+                            break #the square hasn't 4 full blocks
+                if not hasBlank:
+                    return True
+
+        return False #we didn't pushed a box or there is no dead states
+
+    def heuristic(self, node):
+        boxPoints = node.state.boxesPositions
+        smileyPos = node.state.smileyPosition
+        sum = 0
+        shorterSmi = 9223372036854775807
+        for box in boxPoints:
+            manhattan1 = abs(smileyPos[0]-box[0]) + abs(smileyPos[1]-box[1])
+            if manhattan1 < shorterSmi:
+                shorterSmi = manhattan1
+            shorterBox = 9223372036854775807
+            for goal in self.goalPoints:
+                manhattan2 = abs(goal[0]-box[0]) + abs(goal[1]-box[1])
+                if manhattan2 < shorterBox :
+                    shorterBox = manhattan2
+            sum += manhattan2
+        sum += shorterSmi
+        return sum
 
 
 class State:
-    hashValue = 0
-    def __init__(self, grid, pos, goalPoints):
-        self.grid = grid
-        self.smileyPosition = pos
-        self.goalPoints = goalPoints
+
+    def __init__(self, smileyPosition, boxesPositions):
+        self.smileyPosition = smileyPosition
+        self.boxesPositions = boxesPositions
+
+
 
     def __eq__(self, other):
-        for i in range(0, len(self.grid)):
-            for j in range(0, len(self.grid[0])):
-                if self.grid[i][j] != other.grid[i][j]:
-                    return False
+        for box in self.boxesPositions:
+            if not box in other.boxesPositions:
+                return False
         return True
 
     def __hash__(self):
@@ -227,9 +232,9 @@ class State:
 
     def __str__(self):
         output = ""
-        for line in self.grid:
-            for letter in line:
-                output += letter
+        for i in range(0, len(problem.grid)):
+            for j in range(0, len(problem.grid[0])):
+                output += problem.getGridContentAtPos(self, (i,j))
             output += '\n'
         return output
 
@@ -245,19 +250,31 @@ def constructGrid(problemFileName):
     :rtype : a matrix representing the problem's grid
     """
     grid = []
+    smiley = None
+    boxes = []
     try:
         file = open(problemFileName + ".init")
+        i = 0
         for line in file.readlines():
+            j = 0
             tmp = []
             for character in line:
                 if character != '\n':
+                    if character == '@':
+                        smiley = (i,j)
+                        character = ' '
+                    elif character == '$':
+                        boxes.append((i,j))
+                        character = ' '
                     tmp.append(character)
+                j += 1
             grid.append(tmp)
+            i += 1
     except IOError:
         print("File " + problemFileName + " can not be found or open")
         exit(1)
     else:
-        return grid
+        return (grid, smiley, boxes)
 
 
 def getGoalPoint(fileName):
@@ -281,31 +298,16 @@ def getGoalPoint(fileName):
         exit(1)
     return result
 
-def getBoxesPoint(grid):
-    result=[]
-    x=0
-    y=0
-    while x < len(grid):
-        while y < len(grid[x]):
-            if grid[x][y] == '$':
-                result.append((x,y))
-            y+=1
-        x+=1
-        y=0
-    return result
 
-def getSmileyPos(grid):
-    result=[]
-    x=0
-    y=0
-    while x < len(grid):
-        while y < len(grid[x]):
-            if grid[x][y] == '@':
-                return (x,y)
-            y+=1
-        x+=1
-        y=0
+def updateBoxesPoint(list, oldPosition, newPosition):
+    resultList = copy.deepcopy(list)
+    for i in range(0,len(resultList)) :
+        if resultList[i][0] == oldPosition[0] and resultList[i][1] == oldPosition[1]:
+            del resultList[i]
+            resultList.append(newPosition)
+            return resultList
     return None
+
 
 def abs(n):
     return (n, -n)[n < 0]
@@ -321,14 +323,13 @@ start_time = time.time()
 if len(sys.argv) < 2:
     print("usage: sokoban.py instance")
     exit(2)
-grid = constructGrid(sys.argv[1])
+tuple = constructGrid(sys.argv[1])
 goalPoints = getGoalPoint(sys.argv[1])
-smileyPos = getSmileyPos(grid)
 
-problem = Sokoban(grid, goalPoints)
+problem = Sokoban(tuple[0], tuple[1], tuple[2], goalPoints)
 
 # example of bfs search
-node = astar_graph_search(problem, heuristic)
+node = astar_graph_search(problem, problem.heuristic)
 # example of print
 path = node.path()
 path.reverse()
