@@ -134,7 +134,6 @@ def deadState(previousGrid, grid, smileyPos, direction):
 
 
 def heuristic(node):
-    result = {}
     boxPoints = getBoxesPoint(node.state.grid)
     smileyPos = getSmileyPos(node.state.grid)
     sum = 0
@@ -209,8 +208,6 @@ class State:
         self.grid = grid
         self.smileyPosition = pos
         self.goalPoints = goalPoints
-        self.hashValue = State.hashValue
-        State.hashValue += 1
 
     def __eq__(self, other):
         for i in range(0, len(self.grid)):
@@ -225,7 +222,7 @@ class State:
         #     for j in range(0, len(self.grid[0])):
         #         x = grid[i][j]
         #         hashvalue +=
-        return self.hashValue
+        return hash(str(self))
 
 
     def __str__(self):
