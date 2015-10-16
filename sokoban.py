@@ -171,22 +171,22 @@ class Sokoban(Problem):
                 #                         ############   ############  ############   ############
 
                 #Check if there is a 2*2 square with no blank
-                # subSquare1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
-                # subSquare2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
-                # subSquare3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
-                # subSquare4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
-                # subSquares = [subSquare1, subSquare2, subSquare3, subSquare4]
-                #
-                # for subSquare in subSquares:
-                #     hasBlank = False
-                #     for direction in subSquare:
-                #         pos = applyMove(pushedBoxPos, direction)
-                #         if inBounds(self.grid, pos):
-                #             if self.getGridContentAtPos(state, pos) == ' ':
-                #                 hasBlank = True
-                #                 break #the square hasn't 4 full blocks
-                #     if not hasBlank:
-                #         return True
+                subSquare1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
+                subSquare2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
+                subSquare3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
+                subSquare4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
+                subSquares = [subSquare1, subSquare2, subSquare3, subSquare4]
+
+                for subSquare in subSquares:
+                    hasBlank = False
+                    for direction in subSquare:
+                        pos = applyMove(pushedBoxPos, direction)
+                        if inBounds(self.grid, pos):
+                            if self.getGridContentAtPos(state, pos) == ' ' or self.getGridContentAtPos(state, pos) == '@':
+                                hasBlank = True
+                                break #the square hasn't 4 full blocks
+                    if not hasBlank:
+                        return True
 
         return False #we didn't pushed a box or there is no dead states
 
