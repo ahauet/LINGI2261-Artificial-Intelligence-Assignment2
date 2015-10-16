@@ -75,7 +75,7 @@ class Sokoban(Problem):
             if newState: #movement authorized
                 if not self.deadState(state, newState, direction):#ok
                     self.nbrExploredNodes += 1
-                    print(newState)
+                    #print(newState)
                     yield (direction, newState)
 
     def authorizedMov(self, state , direction, goalPoints):
@@ -84,8 +84,8 @@ class Sokoban(Problem):
         if self.getGridContentAtPos(state, (x,y)) != '#':
             newBoxesPoint = copy.deepcopy(state.boxesPositions)
             if self.getGridContentAtPos(state, (x,y)) == '$':
-                if isGoalPoint([x, y], goalPoints):
-                    return None
+                #if isGoalPoint([x, y], goalPoints):
+                #    return None
                 xBox = x + direction[0]
                 yBox = y + direction[1]
                 if self.getGridContentAtPos(state, (xBox,yBox)) == '$' or self.getGridContentAtPos(state, (xBox,yBox)) == '#':
@@ -111,7 +111,7 @@ class Sokoban(Problem):
         return ' '
 
     def deadState(self, previousState, state, direction):
-        """Check if the smiley had push a box
+        """Check if the smiley had pushed a box
         If yes, check if there is a dead state with this box
         Else, return false
 
@@ -123,68 +123,70 @@ class Sokoban(Problem):
         """
         if state.smileyPosition in previousState.boxesPositions : #we pushed a box
             pushedBoxPos = applyMove(state.smileyPosition, direction)
+            if isGoalPoint(pushedBoxPos, self.goalPoints):
+                return False
+            else:
+                # we need to check if there is a dead state with the box we pushed
+                #
+                # possible dead state 1)  ############   ############
+                #                         #$         #   #          #
+                #                         #          #   #    #     #
+                #                         #          #   #   #$     #
+                #                         #          #   #          #
+                #                         ############   ############
+                #
 
-            # we need to check if there is a dead state with the box we pushed
-            #
-            # possible dead state 1)  ############   ############
-            #                         #$         #   #          #
-            #                         #          #   #    #     #
-            #                         #          #   #   #$     #
-            #                         #          #   #          #
-            #                         ############   ############
-            #
+                #Check if there is a wall up and left
+                #Check if there is a wall up and right
+                upPos = applyMove(pushedBoxPos, directions['U'])
+                if inBounds(self.grid, upPos):
+                    if self.getGridContentAtPos(state, upPos) == '#':
+                        leftPos = applyMove(pushedBoxPos, directions['L'])
+                        if inBounds(self.grid, leftPos):
+                            if self.getGridContentAtPos(state, leftPos) == '#':
+                                return True
+                        rightPos = applyMove(pushedBoxPos, directions['R'])
+                        if inBounds(self.grid, rightPos):
+                            if self.getGridContentAtPos(state, rightPos) == '#':
+                                return True
+                # Check if there is a wall down and left
+                # Check if there is a wall down and right
+                downPos = applyMove(pushedBoxPos, directions['D'])
+                if inBounds(self.grid, downPos):
+                    if self.getGridContentAtPos(state, downPos) == '#':
+                        leftPos = applyMove(pushedBoxPos, directions['L'])
+                        if inBounds(self.grid, leftPos):
+                            if self.getGridContentAtPos(state, leftPos) == '#':
+                                return True
+                        rightPos = applyMove(pushedBoxPos, directions['R'])
+                        if inBounds(self.grid, rightPos):
+                            if self.getGridContentAtPos(state, rightPos) == '#':
+                                return True
 
-            #Check if there is a wall up and left
-            #Check if there is a wall up and right
-            upPos = applyMove(pushedBoxPos, directions['U'])
-            if inBounds(self.grid, upPos):
-                if self.getGridContentAtPos(state, upPos) == '#':
-                    leftPos = applyMove(pushedBoxPos, directions['L'])
-                    if inBounds(self.grid, leftPos):
-                        if self.getGridContentAtPos(state, leftPos) == '#':
-                            return True
-                    rightPos = applyMove(pushedBoxPos, directions['R'])
-                    if inBounds(self.grid, rightPos):
-                        if self.getGridContentAtPos(state, rightPos) == '#':
-                            return True
-            # Check if there is a wall down and left
-            # Check if there is a wall down and right
-            downPos = applyMove(pushedBoxPos, directions['D'])
-            if inBounds(self.grid, downPos):
-                if self.getGridContentAtPos(state, downPos) == '#':
-                    leftPos = applyMove(pushedBoxPos, directions['L'])
-                    if inBounds(self.grid, leftPos):
-                        if self.getGridContentAtPos(state, leftPos) == '#':
-                            return True
-                    rightPos = applyMove(pushedBoxPos, directions['R'])
-                    if inBounds(self.grid, rightPos):
-                        if self.getGridContentAtPos(state, rightPos) == '#':
-                            return True
+                # possible dead state 2)  ############   ############  ############   ############
+                #                         #    $$    #   #          #  #          #   #          #
+                #                         #          #   #  #$      #  #    $$    #   #    $#    #
+                #                         #          #   #  #$      #  #    $$    #   #    $$    #
+                #                         #          #   #          #  #          #   #          #
+                #                         ############   ############  ############   ############
 
-            # possible dead state 2)  ############   ############  ############   ############
-            #                         #    $$    #   #          #  #          #   #          #
-            #                         #          #   #  #$      #  #    $$    #   #    $#    #
-            #                         #          #   #  #$      #  #    $$    #   #    $$    #
-            #                         #          #   #          #  #          #   #          #
-            #                         ############   ############  ############   ############
-
-            #Check if there is a 2*2 square with no blank
-            subSquare1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
-            subSquare2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
-            subSquare3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
-            subSquare4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
-            subSquares = [subSquare1, subSquare2, subSquare3, subSquare4]
-
-            for subSquare in subSquares:
-                hasBlank = False
-                for direction in subSquare:
-                    pos = applyMove(pushedBoxPos, direction)
-                    if inBounds(self.grid, pos):
-                        if self.getGridContentAtPos(state, pos) == ' ':
-                            hasBlank = True
-                            break #the square hasn't 4 full blocks
-                if not hasBlank:
-                    return True
+                #Check if there is a 2*2 square with no blank
+                # subSquare1 = ([0, -1], [-1, 0], [-1, -1])  # Left, Down, Both
+                # subSquare2 = ([0, 1], [-1, 0], [-1, 1])  # Right, Down, Both
+                # subSquare3 = ([0, -1], [1, 0], [1, -1])  # Left, Up, Both
+                # subSquare4 = ([0, 1], [1, 0], [1, 1])  # Right, Up, Both
+                # subSquares = [subSquare1, subSquare2, subSquare3, subSquare4]
+                #
+                # for subSquare in subSquares:
+                #     hasBlank = False
+                #     for direction in subSquare:
+                #         pos = applyMove(pushedBoxPos, direction)
+                #         if inBounds(self.grid, pos):
+                #             if self.getGridContentAtPos(state, pos) == ' ':
+                #                 hasBlank = True
+                #                 break #the square hasn't 4 full blocks
+                #     if not hasBlank:
+                #         return True
 
         return False #we didn't pushed a box or there is no dead states
 
